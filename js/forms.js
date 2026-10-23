@@ -32,6 +32,7 @@ export const SCHEMAS = {
         image: { type: "plate", label: "image de l'étape (à côté du texte) — « slug-du-projet numéro »", optional: true, from: "exemples" },
         note: area("note (affichée seulement s'il n'y a pas d'image)", { optional: true, rows: 2 }),
         outils: text("outils"),
+        livrables: text("livrables du jalon (à valider ensemble)", { optional: true }),
         exemples: { type: "lines", label: "planches en exemple — une par ligne : « slug-du-projet numéro » (numéro à partir de 0)", optional: true },
       }),
       { title: (e) => e.titre, blank: () => ({ titre: "nouvelle étape", texte: "", outils: "" }) }
