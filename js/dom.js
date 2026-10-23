@@ -77,4 +77,21 @@ export function sortable(container, itemSel, onDrop) {
   }
 }
 
-export const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+// Avant de remplacer un bloc redessiné : remet dans le nouveau bloc les images et vidéos déjà affichées
+// (même adresse), au lieu d'en créer de nouvelles qui se rechargent et font clignoter l'écran.
+export function keepMedia(oldRoot, newRoot) {
+  const pool = new Map();
+  for (const el of oldRoot.querySelectorAll("img[src], video[src]")) {
+    const k = `${el.tagName}|${el.getAttribute("src")}`;
+    pool.set(k, [...(pool.get(k) ?? []), el]);
+  }
+  for (const el of newRoot.querySelectorAll("img[src], video[src]")) {
+    const old = pool.get(`${el.tagName}|${el.getAttribute("src")}`)?.shift();
+    if (!old) continue;
+    for (const a of [...old.attributes]) if (!el.hasAttribute(a.name)) old.removeAttribute(a.name);
+    for (const a of [...el.attributes]) if (old.getAttribute(a.name) !== a.value) old.setAttribute(a.name, a.value);
+    el.replaceWith(old);
+  }
+}
+
+export const debounce =(fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };

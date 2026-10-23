@@ -6,7 +6,7 @@ import * as gh from "./github.js";
 import { load, changedFiles, usedMedia, validate, repoPath, slugify, emptyText } from "./model.js";
 import { S, change, undo, redo, backTo, reset, refresh, subscribe, loadDraft, clearDraft, setDirtyCheck } from "./store.js";
 import { plate, thumb, poster, sizeOf, mb } from "./media.js";
-import { $, $$, h, toast, modal, confirmBox, sortable, debounce } from "./dom.js";
+import { $, $$, h, toast, modal, confirmBox, sortable, debounce, keepMedia } from "./dom.js";
 import { SCHEMAS, form } from "./forms.js";
 import { projectPreview, pagePreview } from "./preview.js";
 
@@ -267,12 +267,13 @@ function render() {
   chrome();
   const main = $("#main");
   const y = main.scrollTop;
-  main.replaceChildren(
+  const view =
     ui.route.kind === "project" ? projectView() :
     ui.route.kind === "page" ? pageView() :
     ui.route.kind === "versions" ? versionsView() :
-    ui.route.kind === "corbeille" ? corbeilleView() : homeView()
-  );
+    ui.route.kind === "corbeille" ? corbeilleView() : homeView();
+  keepMedia(main, view); // planches déjà affichées gardées : pas de rechargement, pas de clignotement
+  main.replaceChildren(view);
   main.scrollTop = y;
 }
 
@@ -335,7 +336,7 @@ function renderSide() {
       $$("#side .projects li").forEach((li) => (li.hidden = !!s && !li.textContent.toLowerCase().includes(s)));
     },
   });
-  side.replaceChildren(
+  const fresh = [
     h("div", { class: "side-head" }, h("span", {}, `Projets (${S.docs.projects.length})`), h("button", { class: "small", onclick: newProject }, "+ nouveau")),
     search,
     h("p", { class: "hint" }, "Glisser pour changer l'ordre sur le site."),
@@ -347,8 +348,11 @@ function renderSide() {
     h("ol", { class: "links" },
       h("li", { class: ui.route.kind === "versions" ? "sel" : "", onclick: () => go("versions") }, "versions et historique"),
       h("li", { class: ui.route.kind === "corbeille" ? "sel" : "", onclick: () => go("corbeille") }, "corbeille", S.docs.corbeille.projets.length ? h("span", { class: "n" }, S.docs.corbeille.projets.length) : null),
-      h("li", { onclick: () => window.open(SITE, "_blank") }, "site en ligne ↗"))
-  );
+      h("li", { onclick: () => window.open(SITE, "_blank") }, "site en ligne ↗")),
+  ];
+  const holder = h("div", {}, fresh);
+  keepMedia(side, holder); // vignettes gardées : la liste est redessinée à chaque frappe
+  side.replaceChildren(...holder.childNodes);
   sortable(list, "li", (order) =>
       change("Ordre des projets", (d) => d.projects.sort((a, b) => order.indexOf(a.slug) - order.indexOf(b.slug))));
   side.scrollTop = y;
@@ -377,10 +381,20 @@ function drawPreview(force) {
   const frame = $("#frame");
   if (html === lastDoc && !force) return scaleFrame();
   lastDoc = html;
-  const y = frame.contentWindow?.scrollY ?? 0;
-  frame.onload = () => frame.contentWindow.scrollTo(0, y);
-  frame.srcdoc = html;
   scaleFrame();
+  // Page déjà chargée : on ne remplace que son contenu en gardant images et défilement (recharger
+  // l'iframe faisait un flash blanc et re-téléchargeait toutes les images à chaque frappe).
+  const doc = frame.contentDocument;
+  if (!force && html && frame.dataset.ready && doc?.head?.querySelector("style")) {
+    const body = doc.importNode(new DOMParser().parseFromString(html, "text/html").body, true);
+    body.querySelectorAll("script").forEach((s) => s.remove()); // le script de la page est déjà actif
+    keepMedia(doc.body, body);
+    doc.body.replaceChildren(...body.childNodes);
+    return;
+  }
+  delete frame.dataset.ready;
+  frame.onload = () => (frame.dataset.ready = "1");
+  frame.srcdoc = html;
 }
 function scaleFrame() {
   const wrap = $("#frame-wrap"), frame = $("#frame");
