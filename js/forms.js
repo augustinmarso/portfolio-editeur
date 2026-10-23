@@ -26,6 +26,7 @@ export const SCHEMAS = {
       "étapes",
       obj({
         titre: text("titre"),
+        sousEtapes: { type: "lines", label: "sous-étapes techniques — une par ligne (affichées sous le titre)", optional: true },
         texte: area("texte"),
         image: { type: "plate", label: "image de l'étape (à côté du texte) — « slug-du-projet numéro »", optional: true, from: "exemples" },
         note: area("note (affichée seulement s'il n'y a pas d'image)", { optional: true, rows: 2 }),
