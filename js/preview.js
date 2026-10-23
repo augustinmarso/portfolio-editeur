@@ -75,8 +75,9 @@ export function projectPreview({ project, title, view, urlOf, video, embeds }) {
 
 export function pagePreview(name, p) {
   if (name === "processus")
-    return doc(`<div class="hero"><p>${esc(p.surtitre)}</p><h1>${esc(p.titre)}</h1></div><ol class="steps">${(p.etapes ?? [])
-      .map((e, n) => `<li><h2><span>${String(n + 1).padStart(2, "0")}</span>${esc(e.titre)}</h2><div><p>${esc(e.texte)}</p><p class="muted">${esc(e.outils)}</p></div></li>`).join("")}</ol>`, "processus");
+    return doc(`<div class="hero"><p>${esc(p.surtitre)}</p><h1>${esc(p.titre)}</h1>${p.intro ? `<p style="color:#0a0a0a;margin-top:32px;font-size:24px;max-width:52ch">${esc(p.intro)}</p>` : ""}</div><ol class="steps">${(p.etapes ?? [])
+      .map((e, n) => `<li><h2><span>${String(n + 1).padStart(2, "0")}</span>${esc(e.titre)}</h2><div><p>${esc(e.texte)}</p>${e.note ? `<p style="margin-top:20px;border-left:2px solid #0a0a0a;padding-left:16px;font-weight:600">${esc(e.note)}</p>` : ""}<p class="muted">${esc(e.outils)}</p>${(e.exemples ?? []).length ? `<p class="muted" style="font-size:14px">exemples : ${e.exemples.map(esc).join(" · ")}</p>` : ""}</div></li>`).join("")}</ol>
+      ${p.inspirations ? `<p class="muted" style="margin-top:96px;max-width:62ch">${esc(p.inspirations)}</p>` : ""}`, "processus");
   if (name === "cv")
     return doc(`<div class="cv">${(p.sections ?? []).map((s) => `<section><h2>${esc(s.title)}</h2>${(s.items ?? [])
       .map((i) => `<div class="line"><span class="muted">${esc(i.when)}</span><span>${i.href ? `<a>${esc(i.what)}</a>` : esc(i.what)}${i.logos ? " ▪▪▪" : ""}${i.detail ? `<span class="detail">${esc(i.detail)}</span>` : ""}</span></div>`).join("")}</section>`).join("")}</div>`, "cv");

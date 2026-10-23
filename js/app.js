@@ -68,7 +68,7 @@ function loginScreen(error) {
       h("ol", {},
         h("li", {}, h("a", { href: tokenUrl, target: "_blank", rel: "noreferrer" }, "Créer un jeton GitHub ↗"), " (jeton « fine-grained »)."),
         h("li", {}, "Repository access : « Only select repositories » → ", h("b", {}, REPO), "."),
-        h("li", {}, "Permissions : ", h("b", {}, "Contents : Read and write"), " (le reste peut rester tel quel)."),
+        h("li", {}, "Permissions : ", h("b", {}, "Contents : Read and write"), " ; en option ", h("b", {}, "Actions : Read-only"), " pour voir dans l'éditeur quand le site est à jour."),
         h("li", {}, "Copier le jeton et le coller ici.")),
       h("label", { class: "field" }, h("span", {}, "jeton"), input),
       h("label", { class: "check" }, remember, "se souvenir sur cet appareil"),
@@ -189,8 +189,9 @@ function renderTop() {
     h("a", { class: "brand", href: "#" }, "Éditeur du portfolio"),
     MOCK && h("span", { class: "chip err" }, "mode essai (faux GitHub local)"),
     h("span", { class: `chip ${n ? "warn" : "ok"}` }, n ? `${n} modification${n > 1 ? "s" : ""} non publiée${n > 1 ? "s" : ""} · brouillon gardé` : "à jour avec le site"),
-    dep && h("a", { class: `chip ${dep.conclusion === "success" ? "ok" : dep.conclusion ? "err" : "busy"}`, href: dep.url, target: "_blank", rel: "noreferrer" },
-      dep.conclusion === "success" ? "en ligne ✓" : dep.conclusion ? "échec du déploiement ↗" : "déploiement en cours…"),
+    dep && h("a", { class: `chip ${dep.untracked ? "" : dep.conclusion === "success" ? "ok" : dep.conclusion ? "err" : "busy"}`, href: dep.url, target: "_blank", rel: "noreferrer",
+        title: dep.untracked ? "Ajouter la permission « Actions : Read-only » au jeton pour suivre le déploiement ici" : undefined },
+      dep.untracked ? "publié · déploiement à suivre sur GitHub ↗" : dep.conclusion === "success" ? "en ligne ✓" : dep.conclusion ? "échec du déploiement ↗" : "déploiement en cours…"),
     h("span", { class: "sp" }),
     h("button", { class: "ghost", disabled: !u, title: u ? `Annuler : ${u.label} (Ctrl+Z)` : "Rien à annuler", onclick: doUndo }, "↶ annuler"),
     h("button", { class: "ghost", disabled: !r, title: r ? `Rétablir : ${r.label} (Ctrl+Maj+Z)` : "Rien à rétablir", onclick: doRedo }, "↷ rétablir"),
@@ -898,7 +899,14 @@ async function watchDeploy(sha) {
           return;
         }
       }
-    } catch { /* on réessaie */ }
+    } catch (e) {
+      // jeton sans la permission « Actions : Read-only » : on ne peut pas suivre, on renvoie vers la page Actions
+      if (e.status === 403 || e.status === 404) {
+        ui.deploy = { sha, url: ui.deploy.url, untracked: true };
+        renderTop();
+        return;
+      }
+    }
   }
 }
 

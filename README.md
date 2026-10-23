@@ -12,7 +12,7 @@ Il faut un jeton GitHub « fine-grained » :
 
 1. https://github.com/settings/personal-access-tokens/new
 2. Repository access : *Only select repositories* → `portfolio`.
-3. Permissions : **Contents : Read and write**.
+3. Permissions : **Contents : Read and write** ; en option **Actions : Read-only**, pour que l'éditeur affiche quand le site est à jour après une publication.
 4. Coller le jeton dans l'éditeur. Il reste dans le navigateur (option « se souvenir sur cet appareil ») et ne part que vers `api.github.com`.
 
 ## Ce qu'on peut faire

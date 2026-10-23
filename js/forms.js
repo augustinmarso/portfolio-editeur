@@ -21,10 +21,19 @@ export const SCHEMAS = {
   processus: obj({
     surtitre: text("surtitre"),
     titre: text("titre"),
-    etapes: list("étapes", obj({ titre: text("titre"), texte: area("texte"), outils: text("outils") }), {
-      title: (e) => e.titre,
-      blank: () => ({ titre: "nouvelle étape", texte: "", outils: "" }),
-    }),
+    intro: area("introduction", { optional: true, rows: 3 }),
+    etapes: list(
+      "étapes",
+      obj({
+        titre: text("titre"),
+        texte: area("texte"),
+        note: area("note mise en avant", { optional: true, rows: 2 }),
+        outils: text("outils"),
+        exemples: { type: "lines", label: "planches en exemple — une par ligne : « slug-du-projet numéro » (numéro à partir de 0)", optional: true },
+      }),
+      { title: (e) => e.titre, blank: () => ({ titre: "nouvelle étape", texte: "", outils: "" }) }
+    ),
+    inspirations: area("inspirations (bas de page)", { optional: true, rows: 3 }),
   }),
   cv: obj({
     sections: list(
@@ -114,7 +123,7 @@ function field(f, path, rerender) {
 
   let input;
   if (f.type === "textarea") input = h("textarea", { rows: f.rows ?? 4, oninput: (e) => write(e.target.value) }, value ?? "");
-  else if (f.type === "lines") input = h("textarea", { rows: 4, oninput: (e) => write(e.target.value.split("\n")) }, (value ?? []).join("\n"));
+  else if (f.type === "lines") input = h("textarea", { rows: 4, oninput: (e) => write(f.optional ? e.target.value.split("\n").filter((l) => l.trim()) : e.target.value.split("\n")) }, (value ?? []).join("\n"));
   else if (f.type === "paragraphs") input = h("textarea", { rows: 8, oninput: (e) => write(e.target.value.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean)) }, (value ?? []).join("\n\n"));
   else if (f.type === "number") input = h("input", { type: "number", value: value ?? "", oninput: (e) => write(e.target.value === "" ? 0 : Number(e.target.value)) });
   else if (f.type === "color")
