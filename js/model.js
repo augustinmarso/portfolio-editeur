@@ -46,7 +46,8 @@ export function fromFiles(p, text) {
     title: p.title,
     cover: p.cover ?? null,
     hover: p.hover ?? null,
-    images: p.images.map((img, i) => ({ ...img, caption: text.captions?.[i] ?? "", proc: proc.has(i) })),
+    // étape de la méthode (1 à 5) des planches du processus, rangée dans le texte par nom de fichier
+    images: p.images.map((img, i) => ({ ...img, caption: text.captions?.[i] ?? "", proc: proc.has(i), etape: text.etapes?.[img.src.split("/").pop()] ?? 0 })),
     text: { ...text },
   };
 }
@@ -62,7 +63,7 @@ export function serialize(docs, base) {
       title: p.title,
       cover: p.cover,
       ...(p.hover && { hover: p.hover }),
-      images: p.images.map(({ caption, proc, ...img }) => img),
+      images: p.images.map(({ caption, proc, etape, ...img }) => img),
     })),
     null,
     2
@@ -74,6 +75,9 @@ export function serialize(docs, base) {
     const t = { ...p.text };
     t.captions = p.images.map((i) => i.caption);
     t.processus = p.images.flatMap((i, n) => (i.proc ? [n] : []));
+    const etapes = Object.fromEntries(p.images.filter((i) => i.proc && i.etape).map((i) => [i.src.split("/").pop(), i.etape]));
+    if (Object.keys(etapes).length) t.etapes = etapes;
+    else delete t.etapes;
     out[`${PATHS.textsDir}${p.slug}.json`] = json(t);
   }
   // textes des projets retirés depuis le chargement

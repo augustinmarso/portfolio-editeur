@@ -576,6 +576,7 @@ function platesEditor(p) {
         h("div", { class: "seg" },
           h("button", { class: img.proc ? "" : "on", onclick: () => setProc(slug, [img.src], false) }, "produit"),
           h("button", { class: img.proc ? "on" : "", onclick: () => setProc(slug, [img.src], true) }, "processus")),
+        img.proc && stepSelect(img.etape, (v) => setStep(slug, [img.src], v)),
         h("textarea", {
           class: "cap", rows: 2, placeholder: "légende",
           oninput: (e) => change(`${titleOf(p)} : légende ${n + 1}`, (d) => { d.projects.find((x) => x.slug === slug).images.find((i) => i.src === img.src).caption = e.target.value; }, { coalesce: `${slug}.cap.${img.src}`, soft: true }),
@@ -606,12 +607,14 @@ function platesEditor(p) {
         ...[["toutes", all.length], ["produit", all.length - nProc], ["processus", nProc]].map(([f, c]) =>
           h("button", { class: ui.filter === f ? "on" : "", onclick: () => { ui.filter = f; ui.sel.clear(); if (f !== "toutes") ui.previewView = f; render(); } }, `${f} ${c}`))),
       h("span", { class: "sp" }),
+      completeness(all),
       h("span", { class: "hint" }, "clic : sélectionner · glisser : réordonner · touches 1 / 2 : produit / processus")),
     selCount
       ? h("div", { class: "batch" },
           h("b", {}, `${selCount} sélectionnée${selCount > 1 ? "s" : ""}`),
           h("button", { class: "small", onclick: () => setProc(slug, [...ui.sel], false) }, "→ produit"),
           h("button", { class: "small", onclick: () => setProc(slug, [...ui.sel], true) }, "→ processus"),
+          stepSelect(-1, (v) => { setProc(slug, [...ui.sel], true); setStep(slug, [...ui.sel], v); }, "→ étape…"),
           h("button", { class: "small", onclick: () => moveSel(slug, "start") }, "⇤ au début"),
           h("button", { class: "small", onclick: () => moveSel(slug, "end") }, "à la fin ⇥"),
           h("select", { onchange: (e) => { if (e.target.value) moveToProject(slug, e.target.value); } },
@@ -639,6 +642,34 @@ function pickCard(e, src, visible) {
     ui.anchor = src;
   }
   render();
+}
+
+// Étapes de la méthode (page processus) : titres dans l'ordre, numérotés à partir de 1.
+const stepTitles = () => (S.docs.pages.processus?.etapes ?? []).map((e) => e.titre);
+const MIN_PRODUIT = 6;
+
+// Menu d'étape d'une planche du processus (value -1 : menu d'action sans valeur courante).
+function stepSelect(value, onPick, placeholder = "étape : à classer") {
+  return h("select", { class: "step", onchange: (e) => onPick(Number(e.target.value)) },
+    h("option", { value: 0, selected: value === 0 || value === -1 }, placeholder),
+    stepTitles().map((t, i) => h("option", { value: i + 1, selected: value === i + 1 }, `${i + 1}. ${t}`)));
+}
+
+function setStep(slug, srcs, etape) {
+  const p = project(slug);
+  change(`${titleOf(p)} : ${srcs.length > 1 ? `${srcs.length} planches` : "planche"} → ${etape ? stepTitles()[etape - 1] : "à classer"}`, (d) =>
+    d.projects.find((x) => x.slug === slug).images.forEach((i) => srcs.includes(i.src) && (i.etape = etape)));
+}
+
+// Ce qui manque au projet : 6 planches produit et au moins une planche par étape.
+function completeness(all) {
+  const nProd = all.filter((i) => !i.proc).length;
+  const steps = stepTitles().map((t, k) => [t, all.filter((i) => i.proc && i.etape === k + 1).length]);
+  const loose = all.filter((i) => i.proc && !i.etape).length;
+  return h("span", { class: "completeness", title: "objectif : 6 planches produit et au moins une planche par étape" },
+    h("b", { class: nProd >= MIN_PRODUIT ? "ok" : "ko" }, `produit ${nProd}/${MIN_PRODUIT}`),
+    steps.map(([t, c], k) => h("b", { class: c ? "ok" : "ko", title: t }, `${k + 1}·${c}`)),
+    loose ? h("b", { class: "ko" }, `${loose} à classer`) : null);
 }
 
 function setProc(slug, srcs, proc) {
