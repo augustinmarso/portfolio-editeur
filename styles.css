@@ -124,6 +124,11 @@ img.mini { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; }
 .item-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .item-acts { display: flex; }
 .item > .fields-stack, .item > .group { margin: 8px 0 10px 14px; }
+.plate-field { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; }
+.plate-thumb { width: 140px; height: 100px; object-fit: contain; background: var(--soft); border-radius: 8px; }
+.chip-btn .chip-thumb { width: 44px; height: 32px; object-fit: cover; border-radius: 4px; display: block; }
+.chip-btn:has(.chip-thumb) { padding: 3px; border-radius: 6px; }
+.chip-btn.on:has(.chip-thumb) { outline: 2px solid var(--accent); background: none; }
 .color { display: flex; gap: 6px; } .color input[type="color"] { width: 44px; padding: 2px; height: 36px; }
 
 /* planches */

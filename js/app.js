@@ -7,7 +7,7 @@ import { load, changedFiles, usedMedia, validate, repoPath, slugify, emptyText }
 import { S, change, undo, redo, backTo, reset, refresh, subscribe, loadDraft, clearDraft, setDirtyCheck } from "./store.js";
 import { plate, thumb, poster, sizeOf, mb } from "./media.js";
 import { $, $$, h, toast, modal, confirmBox, sortable, debounce, keepMedia } from "./dom.js";
-import { SCHEMAS, form } from "./forms.js";
+import { SCHEMAS, form, setPlateResolver } from "./forms.js";
 import { projectPreview, pagePreview } from "./preview.js";
 
 // ---------- état de l'interface ----------
@@ -41,6 +41,13 @@ function pending() {
   const media = [...S.uploads].filter(([p]) => used.has(p)).map(([path, blob]) => ({ path, blob }));
   return { files, media };
 }
+// « slug numéro » (images d'étapes de la page processus) → miniature de la planche
+const plateOf = (v) => {
+  const [slug, n] = String(v ?? "").trim().split(/\s+/);
+  const img = S.docs?.projects.find((p) => p.slug === slug)?.images[Number(n)];
+  return img && n !== undefined && n !== "" ? img : null;
+};
+setPlateResolver((v) => { const img = plateOf(v); return img ? urlOf(img.sm ?? img.src) : null; });
 setDirtyCheck(() => { const p = pending(); return p.files.length + p.media.length > 0; });
 
 // ---------- connexion ----------
@@ -370,7 +377,7 @@ function drawPreview(force) {
     html = projectPreview({ project: p, title: titleOf(p), view: ui.previewView, urlOf, video, embeds: S.docs.embeds[p.slug] });
     label = `aperçu · ${titleOf(p)} · ${ui.previewView}`;
   } else if (ui.route.kind === "page") {
-    html = pagePreview(ui.route.name, S.docs.pages[ui.route.name]);
+    html = pagePreview(ui.route.name, S.docs.pages[ui.route.name], (v) => { const img = plateOf(v); return img && urlOf(img.sm ?? img.src); });
     label = `aperçu · page ${ui.route.name}`;
   } else {
     html = "";

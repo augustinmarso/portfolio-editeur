@@ -73,10 +73,10 @@ export function projectPreview({ project, title, view, urlOf, video, embeds }) {
   return doc(body, null);
 }
 
-export function pagePreview(name, p) {
+export function pagePreview(name, p, plateUrl = () => null) {
   if (name === "processus")
     return doc(`<div class="hero"><p>${esc(p.surtitre)}</p><h1>${esc(p.titre)}</h1>${p.intro ? `<p style="color:#0a0a0a;margin-top:32px;font-size:24px;max-width:52ch">${esc(p.intro)}</p>` : ""}</div><ol class="steps">${(p.etapes ?? [])
-      .map((e, n) => `<li><h2><span>${String(n + 1).padStart(2, "0")}</span>${esc(e.titre)}</h2><div><p>${esc(e.texte)}</p>${e.note ? `<p style="margin-top:20px;border-left:2px solid #0a0a0a;padding-left:16px;font-weight:600">${esc(e.note)}</p>` : ""}<p class="muted">${esc(e.outils)}</p>${(e.exemples ?? []).length ? `<p class="muted" style="font-size:14px">exemples : ${e.exemples.map(esc).join(" · ")}</p>` : ""}</div></li>`).join("")}</ol>
+      .map((e, n) => `<li><h2><span>${String(n + 1).padStart(2, "0")}</span>${esc(e.titre)}</h2><div><p>${esc(e.texte)}</p>${e.image && plateUrl(e.image) ? `<img src="${esc(plateUrl(e.image))}" alt="" style="margin-top:20px;width:100%;max-width:420px;border-radius:16px;display:block">` : e.note ? `<p style="margin-top:20px;font-size:28px;font-weight:600;line-height:1.1">« ${esc(e.note)} »</p>` : ""}<p class="muted">${esc(e.outils)}</p>${(e.exemples ?? []).length ? `<p class="muted" style="font-size:14px">exemples : ${e.exemples.map(esc).join(" · ")}</p>` : ""}</div></li>`).join("")}</ol>
       ${p.inspirations ? `<p class="muted" style="margin-top:96px;max-width:62ch">${esc(p.inspirations)}</p>` : ""}`, "processus");
   if (name === "cv")
     return doc(`<div class="cv">${(p.sections ?? []).map((s) => `<section><h2>${esc(s.title)}</h2>${(s.items ?? [])
