@@ -75,7 +75,7 @@ export function projectPreview({ project, title, view, urlOf, video, embeds }) {
 
 export function pagePreview(name, p, plateUrl = () => null) {
   if (name === "processus")
-    return doc(`<div class="hero"><p>${esc(p.surtitre)}</p><h1>${esc(p.titre)}</h1>${p.intro ? `<p style="color:#0a0a0a;margin-top:32px;font-size:24px;max-width:52ch">${esc(p.intro)}</p>` : ""}</div><ol class="steps">${(p.etapes ?? [])
+    return doc(`<div class="hero"><p>${esc(p.surtitre)}</p><h1>${esc(p.titre)}</h1>${p.allersRetours ? `<p style="margin-top:20px;max-width:52ch">↺ ${esc(p.allersRetours)}</p>` : ""}${p.intro ? `<p style="color:#0a0a0a;margin-top:32px;font-size:24px;max-width:52ch">${esc(p.intro)}</p>` : ""}</div><ol class="steps">${(p.etapes ?? [])
       .map((e, n) => `<li><h2><span>${String(n + 1).padStart(2, "0")}</span>${esc(e.titre)}</h2><div>${(e.sousEtapes ?? []).length ? `<p class="muted" style="margin:0 0 16px;font:14px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.04em">${e.sousEtapes.map((t, k) => `${n + 1}.${k + 1} ${esc(t)}`).join(" &nbsp; ")}</p>` : ""}<p>${esc(e.texte)}</p>${e.image && plateUrl(e.image) ? `<img src="${esc(plateUrl(e.image))}" alt="" style="margin-top:20px;width:100%;max-width:420px;border-radius:16px;display:block">` : e.note ? `<p style="margin-top:20px;font-size:28px;font-weight:600;line-height:1.1">« ${esc(e.note)} »</p>` : ""}<p class="muted">${esc(e.outils)}</p>${(e.exemples ?? []).length ? `<p class="muted" style="font-size:14px">exemples : ${e.exemples.map(esc).join(" · ")}</p>` : ""}</div></li>`).join("")}</ol>
       ${p.inspirations ? `<p class="muted" style="margin-top:96px;max-width:62ch">${esc(p.inspirations)}</p>` : ""}`, "processus");
   if (name === "cv")

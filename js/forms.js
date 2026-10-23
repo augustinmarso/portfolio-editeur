@@ -21,6 +21,7 @@ export const SCHEMAS = {
   processus: obj({
     surtitre: text("surtitre"),
     titre: text("titre"),
+    allersRetours: area("allers-retours (sous le titre)", { optional: true, rows: 2 }),
     intro: area("introduction", { optional: true, rows: 3 }),
     etapes: list(
       "étapes",
