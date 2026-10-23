@@ -56,11 +56,13 @@ body.no-preview #layout { grid-template-columns: var(--side) minmax(0, 1fr); }
 body.no-preview #preview { display: none; }
 #side { border-right: 1px solid var(--line); padding: 10px; overflow-y: auto; }
 #main { overflow-y: auto; outline: none; }
-#preview { border-left: 1px solid var(--line); display: grid; grid-template-rows: auto 1fr; min-width: 0; background: var(--soft); }
+#preview { border-left: 1px solid var(--line); display: grid; grid-template-rows: auto minmax(0, 1fr); min-width: 0; min-height: 0; background: var(--soft); }
 .preview-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 12px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--line); background: #fff; }
 .preview-bar span:first-child { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#frame-wrap { position: relative; overflow: hidden; }
-#frame { border: 0; background: #fff; transform-origin: 0 0; display: block; }
+#frame-wrap { position: relative; overflow: hidden; min-height: 0; }
+/* hors du flux : réduite par transform, l'iframe garde sa vraie hauteur en mise en page et faisait
+   grandir le panneau, qui la faisait grandir à son tour (boucle en mode ordinateur) */
+#frame { position: absolute; top: 0; left: 0; border: 0; background: #fff; transform-origin: 0 0; display: block; }
 
 /* barre latérale */
 .side-head { display: flex; justify-content: space-between; align-items: center; margin: 14px 4px 8px; font-weight: 700; }
