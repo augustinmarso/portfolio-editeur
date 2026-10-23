@@ -131,6 +131,8 @@ async function createCode(first) {
     const err = h("p", { class: "error" });
     const ok = () => {
       if (a.value.length < MIN_CODE) return (err.textContent = `Au moins ${MIN_CODE} caractères (une petite phrase marche bien).`);
+      // le fichier chiffré est public : on écarte les codes faciles à essayer (chiffres seuls, peu de caractères différents)
+      if (/^\d+$/.test(a.value) || new Set(a.value.toLowerCase()).size < 7) return (err.textContent = "Code trop facile à deviner : mélanger plusieurs mots ou caractères différents.");
       if (a.value !== b.value) return (err.textContent = "Les deux codes ne sont pas identiques.");
       close({ code: a.value, remember: remember.checked });
     };
@@ -143,6 +145,7 @@ async function createCode(first) {
       h("label", { class: "field" }, h("span", {}, "confirmer"), b),
       h("label", { class: "check" }, remember, "se souvenir sur cet ordinateur (s'ouvre directement)"),
       h("p", { class: "hint" }, "Le fichier chiffré est public : un code long empêche de le deviner. Code oublié : se reconnecter avec un jeton et en créer un autre."),
+      !first && h("p", { class: "hint" }, "L'ancienne version chiffrée reste dans l'historique du dépôt. Si tu changes de code parce que l'ancien a pu être vu, supprime aussi le jeton sur GitHub (Settings → Personal access tokens), crée-en un nouveau et reconnecte-toi avec lui avant d'enregistrer le nouveau code."),
       err,
       h("div", { class: "row end" }, h("button", { onclick: () => close(null) }, first ? "Plus tard" : "Annuler"), h("button", { class: "primary", onclick: ok }, "Enregistrer le code")));
   });
