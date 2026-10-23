@@ -10,6 +10,7 @@ export const PATHS = {
   site: "src/data/site.json",
   embeds: "src/data/embeds.json",
   corbeille: "src/data/corbeille.json",
+  acces: "editeur/acces.json", // jeton chiffré par le code d'accès (hors du site : seul public/ est servi)
   textsDir: "src/data/texts/",
   textsIndex: "src/data/texts/index.ts",
   pages: {

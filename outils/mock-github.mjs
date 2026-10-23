@@ -58,8 +58,10 @@ http.createServer(async (req, res) => {
     }
     if ((m = r.match(/^\/contents\/(.+)$/))) {
       const ref = url.searchParams.get("ref") ?? "HEAD";
+      let buf;
+      try { buf = git(["show", `${ref}:${m[1]}`], { stdio: ["ignore", "pipe", "ignore"] }); } catch { return json(res, 404, { message: "Not Found" }); }
       res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": "*" });
-      return res.end(git(["show", `${ref}:${m[1]}`]));
+      return res.end(buf);
     }
     if (r === "/git/blobs" && req.method === "POST") {
       const b = JSON.parse(await readBody(req));

@@ -29,6 +29,14 @@ async function gh(path, { raw, method = "GET", body, accept } = {}) {
 }
 
 export const repoInfo = () => gh(R);
+
+// Lecture sans jeton (dépôt public) : sert à récupérer le jeton chiffré avant d'avoir le code. null si absent.
+export async function readPublic(path) {
+  const r = await fetch(`${API}${R}/contents/${enc(path)}?ref=${BRANCH}`, { cache: "no-store", headers: { Accept: "application/vnd.github.raw+json" } });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(r.status === 403 ? "GitHub limite les lectures sans connexion : réessayer dans quelques minutes." : `GitHub ${r.status}`);
+  return r.text();
+}
 export const headSha = async () => (await gh(`${R}/git/ref/heads/${BRANCH}`)).object.sha;
 
 // Arborescence complète d'un commit : chemin → sha du fichier.
