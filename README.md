@@ -6,7 +6,12 @@ Il modifie directement le dépôt [augustinmarso/portfolio](https://github.com/a
 Chaque publication est **un seul commit** sur `main` : GitHub Pages reconstruit alors le site (1 à 2 minutes).
 Ce dépôt-ci ne contient que l'éditeur (HTML, CSS et JavaScript sans dépendance ni compilation).
 
-## Se connecter : code d'accès
+## Sur ce PC : sans code ni connexion
+
+Double-cliquer sur `ouvrir-editeur.cmd` : l'éditeur s'ouvre dans Chrome sur http://localhost:5330 avec la connexion
+GitHub de `gh` (`gh auth login`, une seule fois). Pas de code, pas d'écran de connexion. Fermer la fenêtre noire l'arrête.
+
+## En ligne : code d'accès
 
 On entre avec un **code d'accès** (au moins 10 caractères). Coché « se souvenir sur cet ordinateur », l'éditeur
 s'ouvre ensuite directement sur cet appareil ; ailleurs, on tape le code.

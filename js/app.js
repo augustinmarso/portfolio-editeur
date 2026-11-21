@@ -56,6 +56,7 @@ setDirtyCheck(() => { const p = pending(); return p.files.length + p.media.lengt
 // gardé d'une visite à l'autre : seulement le code, et seulement si on le demande.
 const TOKEN_KEY = "ed:token"; // jeton de la session en cours (onglet)
 const CODE_KEY = "ed:code"; // code d'accès mémorisé sur cet ordinateur
+const LOCAL = !MOCK && ["localhost", "127.0.0.1"].includes(location.hostname); // lancé par outils/local.mjs
 // anciennes versions : jeton gardé en clair d'une visite à l'autre → repris pour cette session puis effacé
 let TOKEN = localStorage.getItem(TOKEN_KEY);
 localStorage.removeItem(TOKEN_KEY);
@@ -178,6 +179,8 @@ async function createCode(first) {
 // ---------- démarrage ----------
 async function start() {
   TOKEN ??= sessionStorage.getItem(TOKEN_KEY);
+  // Sur ce PC (outils/local.mjs) : jeton de `gh`, pas de code ni d'écran de connexion.
+  if (!TOKEN && LOCAL) TOKEN = await fetch("/jeton", { cache: "no-store" }).then((r) => (r.ok ? r.text() : null)).catch(() => null);
   if (!TOKEN) {
     const code = localStorage.getItem(CODE_KEY);
     if (!code) return codeScreen();
@@ -232,7 +235,7 @@ async function start() {
   window.addEventListener("hashchange", route);
   subscribe((soft) => (soft ? chrome() : render()));
   render();
-  if (!S.hasCode) createCode(true);
+  if (!S.hasCode && !LOCAL) createCode(true);
 }
 
 // ---------- squelette ----------
@@ -309,8 +312,8 @@ function renderTop() {
     h("button", { class: `ghost ${ui.previewOn ? "on" : ""}`, title: "Afficher ou masquer l'aperçu (Ctrl+P)", onclick: togglePreview }, "aperçu"),
     h("button", { class: "ghost", title: "Raccourcis clavier (?)", onclick: shortcuts }, "?"),
     h("button", { class: "primary", disabled: !n, title: "Publier en ligne (Ctrl+S)", onclick: publish }, "Publier"),
-    h("button", { class: "ghost small", title: S.hasCode ? "Changer le code d'accès" : "Créer un code d'accès (plus besoin du jeton)", onclick: () => createCode(!S.hasCode) }, "code d'accès"),
-    h("button", { class: "ghost small", title: "Fermer la session et oublier le code sur cet ordinateur", onclick: logout }, "déconnexion"),
+    !LOCAL && h("button", { class: "ghost small", title: S.hasCode ? "Changer le code d'accès" : "Créer un code d'accès (plus besoin du jeton)", onclick: () => createCode(!S.hasCode) }, "code d'accès"),
+    !LOCAL && h("button", { class: "ghost small", title: "Fermer la session et oublier le code sur cet ordinateur", onclick: logout }, "déconnexion"),
   ].filter(Boolean));
   document.body.classList.toggle("no-preview", !ui.previewOn);
   document.title = `${n ? "● " : ""}Éditeur du portfolio`;
