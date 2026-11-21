@@ -11,16 +11,10 @@ Ce dépôt-ci ne contient que l'éditeur (HTML, CSS et JavaScript sans dépendan
 Double-cliquer sur `ouvrir-editeur.cmd` : l'éditeur s'ouvre dans Chrome sur http://localhost:5330 avec la connexion
 GitHub de `gh` (`gh auth login`, une seule fois). Pas de code, pas d'écran de connexion. Fermer la fenêtre noire l'arrête.
 
-## En ligne : code d'accès
+## En ligne : jeton GitHub
 
-On entre avec un **code d'accès** (au moins 10 caractères). Coché « se souvenir sur cet ordinateur », l'éditeur
-s'ouvre ensuite directement sur cet appareil ; ailleurs, on tape le code.
-
-Comment ça marche : le jeton GitHub (voir plus bas) est chiffré dans le navigateur avec le code (PBKDF2-SHA256,
-1 200 000 itérations → AES-GCM 256) et rangé dans le dépôt du portfolio, `editeur/acces.json`. Ce fichier est
-public mais illisible sans le code ; il n'est pas servi par le site. Le jeton en clair n'est jamais gardé d'une
-visite à l'autre (seulement le temps de l'onglet). Changer le code : bouton « code d'accès ». Code oublié ou jeton
-expiré : « Se connecter avec un jeton GitHub », puis recréer un code.
+Il n'y a plus de code d'accès. En ligne, l'éditeur demande un jeton GitHub (voir plus bas), gardé seulement
+le temps de l'onglet. Sur ce PC, `ouvrir-editeur.cmd` évite même cette étape.
 
 ## Le jeton GitHub (une seule fois, puis à chaque expiration)
 
@@ -29,7 +23,7 @@ Il faut un jeton GitHub « fine-grained » :
 1. https://github.com/settings/personal-access-tokens/new
 2. Repository access : *Only select repositories* → `portfolio`.
 3. Permissions : **Contents : Read and write** ; en option **Actions : Read-only**, pour que l'éditeur affiche quand le site est à jour après une publication.
-4. Coller le jeton dans l'éditeur (lien « Se connecter avec un jeton GitHub ») : il propose aussitôt de créer le code d'accès.
+4. Coller le jeton dans l'éditeur.
 
 ## Ce qu'on peut faire
 

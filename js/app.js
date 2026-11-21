@@ -1,7 +1,6 @@
 // Éditeur en ligne du portfolio : projets, planches, vidéos, pages ; aperçu en direct, annuler, versions,
 // corbeille, édition par lot, puis publication en un commit sur le dépôt du portfolio.
 import { OWNER, REPO, SITE, THEMES, RAW_BASE, MOCK, PATHS } from "./config.js";
-import { lock, unlock, MIN_CODE } from "./crypto.js";
 import * as gh from "./github.js";
 import { load, changedFiles, usedMedia, validate, repoPath, slugify, emptyText } from "./model.js";
 import { S, change, undo, redo, backTo, reset, refresh, subscribe, loadDraft, clearDraft, setDirtyCheck } from "./store.js";
@@ -51,54 +50,17 @@ setPlateResolver((v) => { const img = plateOf(v); return img ? urlOf(img.sm ?? i
 setDirtyCheck(() => { const p = pending(); return p.files.length + p.media.length > 0; });
 
 // ---------- connexion ----------
-// Deux façons d'entrer : le code d'accès (le jeton chiffré est lu dans le dépôt puis déchiffré ici),
-// ou directement un jeton GitHub (première fois, ou jeton expiré). Le jeton en clair n'est jamais
-// gardé d'une visite à l'autre : seulement le code, et seulement si on le demande.
+// Sur ce PC : jeton de `gh` (outils/local.mjs), sans rien demander. En ligne : jeton GitHub collé,
+// gardé seulement le temps de l'onglet. (Plus de code d'accès.)
 const TOKEN_KEY = "ed:token"; // jeton de la session en cours (onglet)
-const CODE_KEY = "ed:code"; // code d'accès mémorisé sur cet ordinateur
 const LOCAL = !MOCK && ["localhost", "127.0.0.1"].includes(location.hostname); // lancé par outils/local.mjs
 // anciennes versions : jeton gardé en clair d'une visite à l'autre → repris pour cette session puis effacé
 let TOKEN = localStorage.getItem(TOKEN_KEY);
 localStorage.removeItem(TOKEN_KEY);
-
-async function tokenFromCode(code) {
-  const raw = await gh.readPublic(PATHS.acces);
-  if (!raw) throw Object.assign(new Error("Aucun code d'accès n'a encore été créé."), { noCode: true });
-  return unlock(JSON.parse(raw), code);
-}
+localStorage.removeItem("ed:code"); // ancien code d'accès mémorisé
 
 function screen(...children) {
   document.body.replaceChildren(h("div", { class: "login" }, h("h1", {}, "Éditeur du portfolio"), ...children.filter(Boolean)));
-}
-
-function codeScreen(error) {
-  const input = h("input", { type: "password", placeholder: "code d'accès", autocomplete: "current-password", spellcheck: "false" });
-  const remember = h("input", { type: "checkbox", checked: true });
-  const btn = h("button", { class: "primary" }, "Entrer");
-  const go = async () => {
-    const code = input.value;
-    if (!code) return;
-    btn.disabled = true;
-    btn.textContent = "Vérification…";
-    try {
-      TOKEN = await tokenFromCode(code);
-      if (remember.checked) localStorage.setItem(CODE_KEY, code);
-      sessionStorage.setItem(TOKEN_KEY, TOKEN);
-      start();
-    } catch (e) {
-      if (e.noCode) return loginScreen("Aucun code d'accès n'existe encore : se connecter une première fois avec un jeton GitHub, l'éditeur proposera ensuite d'en créer un.");
-      codeScreen(e.message);
-    }
-  };
-  btn.onclick = go;
-  input.addEventListener("keydown", (e) => e.key === "Enter" && go());
-  screen(
-    error && h("p", { class: "error" }, error),
-    h("label", { class: "field" }, h("span", {}, "code d'accès"), input),
-    h("label", { class: "check" }, remember, "se souvenir sur cet ordinateur"),
-    btn,
-    h("p", { class: "hint" }, h("a", { href: "#", onclick: (e) => { e.preventDefault(); loginScreen(); } }, "Se connecter avec un jeton GitHub"), " (première fois, jeton expiré ou code oublié)."));
-  input.focus();
 }
 
 function loginScreen(error) {
@@ -124,56 +86,8 @@ function loginScreen(error) {
       h("li", {}, "Permissions : ", h("b", {}, "Contents : Read and write"), " ; en option ", h("b", {}, "Actions : Read-only"), " pour voir dans l'éditeur quand le site est à jour."),
       h("li", {}, "Copier le jeton et le coller ici.")),
     h("label", { class: "field" }, h("span", {}, "jeton"), input),
-    h("p", { class: "hint" }, "Ensuite, l'éditeur propose un code d'accès : plus besoin du jeton, ni ici ni sur un autre appareil."),
-    h("button", { class: "primary", onclick: go }, "Ouvrir l'éditeur"),
-    h("p", { class: "hint" }, h("a", { href: "#", onclick: (e) => { e.preventDefault(); codeScreen(); } }, "J'ai un code d'accès")));
+    h("button", { class: "primary", onclick: go }, "Ouvrir l'éditeur"));
   input.focus();
-}
-
-// Crée ou change le code : chiffre le jeton de la session et l'enregistre dans le dépôt.
-async function createCode(first) {
-  const res = await modal((close) => {
-    const a = h("input", { type: "password", autocomplete: "new-password", placeholder: `au moins ${MIN_CODE} caractères` });
-    const b = h("input", { type: "password", autocomplete: "new-password" });
-    const remember = h("input", { type: "checkbox", checked: true });
-    const err = h("p", { class: "error" });
-    const ok = () => {
-      if (a.value.length < MIN_CODE) return (err.textContent = `Au moins ${MIN_CODE} caractères (une petite phrase marche bien).`);
-      // le fichier chiffré est public : on écarte les codes faciles à essayer (chiffres seuls, peu de caractères différents)
-      if (/^\d+$/.test(a.value) || new Set(a.value.toLowerCase()).size < 7) return (err.textContent = "Code trop facile à deviner : mélanger plusieurs mots ou caractères différents.");
-      if (a.value !== b.value) return (err.textContent = "Les deux codes ne sont pas identiques.");
-      close({ code: a.value, remember: remember.checked });
-    };
-    b.addEventListener("keydown", (e) => e.key === "Enter" && ok());
-    setTimeout(() => a.focus());
-    return h("div", {},
-      h("h2", {}, first ? "Créer un code d'accès" : "Changer le code d'accès"),
-      h("p", { class: "muted" }, "Avec ce code, plus besoin du jeton GitHub : il est gardé chiffré dans le dépôt et seul le code permet de l'ouvrir, depuis n'importe quel appareil."),
-      h("label", { class: "field" }, h("span", {}, "code"), a),
-      h("label", { class: "field" }, h("span", {}, "confirmer"), b),
-      h("label", { class: "check" }, remember, "se souvenir sur cet ordinateur (s'ouvre directement)"),
-      h("p", { class: "hint" }, "Le fichier chiffré est public : un code long empêche de le deviner. Code oublié : se reconnecter avec un jeton et en créer un autre."),
-      !first && h("p", { class: "hint" }, "L'ancienne version chiffrée reste dans l'historique du dépôt. Si tu changes de code parce que l'ancien a pu être vu, supprime aussi le jeton sur GitHub (Settings → Personal access tokens), crée-en un nouveau et reconnecte-toi avec lui avant d'enregistrer le nouveau code."),
-      err,
-      h("div", { class: "row end" }, h("button", { onclick: () => close(null) }, first ? "Plus tard" : "Annuler"), h("button", { class: "primary", onclick: ok }, "Enregistrer le code")));
-  });
-  if (!res) return;
-  toast("Chiffrement du jeton…");
-  try {
-    const box = await lock(TOKEN, res.code);
-    await gh.commitFiles({
-      parent: await gh.headSha(),
-      files: [{ path: PATHS.acces, text: JSON.stringify(box, null, 2) + "\n" }],
-      message: "Code d'accès de l'éditeur (jeton chiffré)",
-    });
-    if (res.remember) localStorage.setItem(CODE_KEY, res.code);
-    else localStorage.removeItem(CODE_KEY);
-    S.hasCode = true;
-    renderTop();
-    toast("Code d'accès enregistré ✓");
-  } catch (e) {
-    toast(`Code non enregistré : ${e.message}`, "error");
-  }
 }
 
 // ---------- démarrage ----------
@@ -181,18 +95,7 @@ async function start() {
   TOKEN ??= sessionStorage.getItem(TOKEN_KEY);
   // Sur ce PC (outils/local.mjs) : jeton de `gh`, pas de code ni d'écran de connexion.
   if (!TOKEN && LOCAL) TOKEN = await fetch("/jeton", { cache: "no-store" }).then((r) => (r.ok ? r.text() : null)).catch(() => null);
-  if (!TOKEN) {
-    const code = localStorage.getItem(CODE_KEY);
-    if (!code) return codeScreen();
-    screen(h("p", { class: "muted" }, "Ouverture avec le code mémorisé…"), h("progress", {}));
-    try {
-      TOKEN = await tokenFromCode(code);
-      sessionStorage.setItem(TOKEN_KEY, TOKEN);
-    } catch (e) {
-      localStorage.removeItem(CODE_KEY);
-      return e.noCode ? loginScreen() : codeScreen(`${e.message} (le code a peut-être été changé sur un autre appareil)`);
-    }
-  }
+  if (!TOKEN) return loginScreen();
   gh.setToken(TOKEN);
   document.body.replaceChildren(h("div", { class: "loading" }, h("p", {}, "Connexion à GitHub…"), h("progress", {})));
   try {
@@ -201,7 +104,7 @@ async function start() {
   } catch (e) {
     TOKEN = null;
     sessionStorage.removeItem(TOKEN_KEY);
-    return loginScreen(e.status === 401 ? "Le jeton GitHub est refusé (expiré ou supprimé) : en créer un nouveau, puis recréer le code d'accès." : e.message);
+    return loginScreen(e.status === 401 ? "Le jeton GitHub est refusé (expiré ou supprimé) : en créer un nouveau." : e.message);
   }
   const draft = await loadDraft();
   let resume = false;
@@ -229,13 +132,11 @@ async function start() {
     document.body.replaceChildren(h("div", { class: "loading" }, h("p", { class: "error" }, `Chargement impossible : ${e.message}`), h("button", { onclick: start }, "Réessayer")));
     return;
   }
-  S.hasCode = PATHS.acces in S.base.tree.files;
   shell();
   route();
   window.addEventListener("hashchange", route);
   subscribe((soft) => (soft ? chrome() : render()));
   render();
-  if (!S.hasCode && !LOCAL) createCode(true);
 }
 
 // ---------- squelette ----------
@@ -312,8 +213,7 @@ function renderTop() {
     h("button", { class: `ghost ${ui.previewOn ? "on" : ""}`, title: "Afficher ou masquer l'aperçu (Ctrl+P)", onclick: togglePreview }, "aperçu"),
     h("button", { class: "ghost", title: "Raccourcis clavier (?)", onclick: shortcuts }, "?"),
     h("button", { class: "primary", disabled: !n, title: "Publier en ligne (Ctrl+S)", onclick: publish }, "Publier"),
-    !LOCAL && h("button", { class: "ghost small", title: S.hasCode ? "Changer le code d'accès" : "Créer un code d'accès (plus besoin du jeton)", onclick: () => createCode(!S.hasCode) }, "code d'accès"),
-    !LOCAL && h("button", { class: "ghost small", title: "Fermer la session et oublier le code sur cet ordinateur", onclick: logout }, "déconnexion"),
+    !LOCAL && h("button", { class: "ghost small", title: "Fermer la session", onclick: logout }, "déconnexion"),
   ].filter(Boolean));
   document.body.classList.toggle("no-preview", !ui.previewOn);
   document.title = `${n ? "● " : ""}Éditeur du portfolio`;
@@ -1119,8 +1019,7 @@ function shortcuts() {
 }
 
 async function logout() {
-  if (!(await confirmBox("Se déconnecter ?", "Le code mémorisé sur cet ordinateur est oublié : il faudra le retaper. Le brouillon reste gardé.", "Se déconnecter"))) return;
-  localStorage.removeItem(CODE_KEY);
+  if (!(await confirmBox("Se déconnecter ?", "Il faudra recoller le jeton GitHub. Le brouillon reste gardé.", "Se déconnecter"))) return;
   sessionStorage.removeItem(TOKEN_KEY);
   location.reload();
 }
