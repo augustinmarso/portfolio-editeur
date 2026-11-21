@@ -50,13 +50,12 @@ setPlateResolver((v) => { const img = plateOf(v); return img ? urlOf(img.sm ?? i
 setDirtyCheck(() => { const p = pending(); return p.files.length + p.media.length > 0; });
 
 // ---------- connexion ----------
-// Sur ce PC : jeton de `gh` (outils/local.mjs), sans rien demander. En ligne : jeton GitHub collé,
-// gardé seulement le temps de l'onglet. (Plus de code d'accès.)
-const TOKEN_KEY = "ed:token"; // jeton de la session en cours (onglet)
+// En ligne : jeton GitHub collé une fois par appareil, puis gardé (plus de code d'accès).
+// Sur ce PC via outils/local.mjs : jeton de `gh`, sans rien demander.
+const TOKEN_KEY = "ed:token"; // jeton GitHub gardé sur cet appareil : collé une seule fois, ensuite l'éditeur s'ouvre directement
 const LOCAL = !MOCK && ["localhost", "127.0.0.1"].includes(location.hostname); // lancé par outils/local.mjs
 // anciennes versions : jeton gardé en clair d'une visite à l'autre → repris pour cette session puis effacé
-let TOKEN = localStorage.getItem(TOKEN_KEY);
-localStorage.removeItem(TOKEN_KEY);
+let TOKEN = null;
 localStorage.removeItem("ed:code"); // ancien code d'accès mémorisé
 
 function screen(...children) {
@@ -73,7 +72,7 @@ function loginScreen(error) {
     const t = input.value.trim();
     if (!t) return;
     TOKEN = t;
-    sessionStorage.setItem(TOKEN_KEY, t);
+    localStorage.setItem(TOKEN_KEY, t);
     start();
   };
   input.addEventListener("keydown", (e) => e.key === "Enter" && go());
@@ -86,13 +85,14 @@ function loginScreen(error) {
       h("li", {}, "Permissions : ", h("b", {}, "Contents : Read and write"), " ; en option ", h("b", {}, "Actions : Read-only"), " pour voir dans l'éditeur quand le site est à jour."),
       h("li", {}, "Copier le jeton et le coller ici.")),
     h("label", { class: "field" }, h("span", {}, "jeton"), input),
+    h("p", { class: "hint" }, "À coller une seule fois : ensuite, l'éditeur s'ouvre directement sur cet appareil."),
     h("button", { class: "primary", onclick: go }, "Ouvrir l'éditeur"));
   input.focus();
 }
 
 // ---------- démarrage ----------
 async function start() {
-  TOKEN ??= sessionStorage.getItem(TOKEN_KEY);
+  TOKEN ??= localStorage.getItem(TOKEN_KEY);
   // Sur ce PC (outils/local.mjs) : jeton de `gh`, pas de code ni d'écran de connexion.
   if (!TOKEN && LOCAL) TOKEN = await fetch("/jeton", { cache: "no-store" }).then((r) => (r.ok ? r.text() : null)).catch(() => null);
   if (!TOKEN) return loginScreen();
@@ -103,7 +103,7 @@ async function start() {
     if (!info.permissions?.push) throw new Error(`Ce jeton ne peut pas écrire dans ${OWNER}/${REPO} (il faut « Contents : Read and write »).`);
   } catch (e) {
     TOKEN = null;
-    sessionStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(TOKEN_KEY);
     return loginScreen(e.status === 401 ? "Le jeton GitHub est refusé (expiré ou supprimé) : en créer un nouveau." : e.message);
   }
   const draft = await loadDraft();
@@ -1019,8 +1019,8 @@ function shortcuts() {
 }
 
 async function logout() {
-  if (!(await confirmBox("Se déconnecter ?", "Il faudra recoller le jeton GitHub. Le brouillon reste gardé.", "Se déconnecter"))) return;
-  sessionStorage.removeItem(TOKEN_KEY);
+  if (!(await confirmBox("Se déconnecter ?", "Le jeton GitHub est oublié sur cet appareil : il faudra le recoller. Le brouillon reste gardé.", "Se déconnecter"))) return;
+  localStorage.removeItem(TOKEN_KEY);
   location.reload();
 }
 

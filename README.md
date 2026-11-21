@@ -13,8 +13,8 @@ GitHub de `gh` (`gh auth login`, une seule fois). Pas de code, pas d'écran de c
 
 ## En ligne : jeton GitHub
 
-Il n'y a plus de code d'accès. En ligne, l'éditeur demande un jeton GitHub (voir plus bas), gardé seulement
-le temps de l'onglet. Sur ce PC, `ouvrir-editeur.cmd` évite même cette étape.
+Il n'y a plus de code d'accès. En ligne, l'éditeur demande un jeton GitHub (voir plus bas) une seule fois
+par appareil ; il le garde ensuite dans le navigateur et s'ouvre directement (« déconnexion » l'oublie). Sur ce PC, `ouvrir-editeur.cmd` évite même cette étape.
 
 ## Le jeton GitHub (une seule fois, puis à chaque expiration)
 
